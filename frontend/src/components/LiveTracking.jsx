@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { GoogleMap, Marker, useJsApiLoader, DirectionsRenderer, Polyline } from '@react-google-maps/api'
 
 const containerStyle = {
@@ -8,11 +8,10 @@ const containerStyle = {
 
 const defaultCenter = { lat: 20.5937, lng: 78.9629 }
 const geolocationOptions = {
-    enableHighAccuracy: true,
-    timeout: 10000,
+    enableHighAccuracy: false,
+    timeout: 30000,
     maximumAge: 0,
 }
-const minAcceptableAccuracyMeters = 1000
 
 const LiveTracking = ({ pickup, destination, captainPosition }) => {
     const [ currentPosition, setCurrentPosition ] = useState(null)
@@ -25,7 +24,6 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
     const [ zoom, setZoom ] = useState(14)
     const [ locationReady, setLocationReady ] = useState(false)
     const [ locationError, setLocationError ] = useState(null)
-    const acceptedFixRef = useRef(false)
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -43,13 +41,7 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
         const acceptPosition = (pos) => {
             if (!isMounted) return
 
-            const accuracy = pos?.coords?.accuracy
-            if (!acceptedFixRef.current && accuracy && accuracy > minAcceptableAccuracyMeters) {
-                return
-            }
-
             const nextPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-            acceptedFixRef.current = true
             setCurrentPosition(nextPosition)
             setLocationReady(true)
             setLocationError(null)

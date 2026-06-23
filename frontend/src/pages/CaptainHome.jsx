@@ -11,8 +11,6 @@ import { CaptainDataContext } from '../context/CapatainContext'
 import axios from 'axios'
 import LiveTracking from '../components/LiveTracking'
 
-const minAcceptableAccuracyMeters = 1000
-
 const CaptainHome = () => {
 
     const [ ridePopupPanel, setRidePopupPanel ] = useState(false)
@@ -73,16 +71,12 @@ const CaptainHome = () => {
         })
 
         const locationOptions = {
-            enableHighAccuracy: true,
-            timeout: 10000,
+            enableHighAccuracy: false,
+            timeout: 30000,
             maximumAge: 0
         }
 
         const emitCurrentLocation = (position) => {
-            if (position?.coords?.accuracy && position.coords.accuracy > minAcceptableAccuracyMeters) {
-                return
-            }
-
             socket.emit('update-location-captain', {
                 userId: captain._id,
                 location: {
