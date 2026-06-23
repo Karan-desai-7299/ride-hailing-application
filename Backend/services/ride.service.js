@@ -176,7 +176,7 @@ module.exports.getActiveRide = async ({ userId }) => {
     const ride = await rideModel.findOne({
         user: userId,
         status: { $in: [ 'pending', 'accepted', 'ongoing' ] }
-    }).populate('user').populate('captain');
+    }).populate('user').populate('captain').select('+otp');
     return ride; // null if none
 }
 
