@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { GoogleMap, Marker, useJsApiLoader, DirectionsRenderer, Polyline } from '@react-google-maps/api'
 
 const containerStyle = {
@@ -6,38 +6,53 @@ const containerStyle = {
     height: '100%',
 }
 
-const defaultCenter = { lat: 20.5937, lng: 78.9629 } // India center as fallback
+const defaultCenter = { lat: 20.5937, lng: 78.9629 }
 const geolocationOptions = {
     enableHighAccuracy: true,
     timeout: 10000,
     maximumAge: 0,
 }
+const minAcceptableAccuracyMeters = 1000
 
 const LiveTracking = ({ pickup, destination, captainPosition }) => {
-    const [ currentPosition, setCurrentPosition ] = useState(defaultCenter)
+    const [ currentPosition, setCurrentPosition ] = useState(null)
     const [ directions, setDirections ] = useState(null)
     const [ mapRef, setMapRef ] = useState(null)
-    const [ mapType, setMapType ] = useState('roadmap') // roadmap | satellite
+    const [ mapType, setMapType ] = useState('roadmap')
     const [ pickupCoords, setPickupCoords ] = useState(null)
     const [ destCoords, setDestCoords ] = useState(null)
     const [ captainMarkerPos, setCaptainMarkerPos ] = useState(null)
     const [ zoom, setZoom ] = useState(14)
+    const [ locationReady, setLocationReady ] = useState(false)
+    const [ locationError, setLocationError ] = useState(null)
+    const acceptedFixRef = useRef(false)
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
     })
 
-    // Get & watch current location
     useEffect(() => {
-        if (!navigator.geolocation) return
+        if (!navigator.geolocation) {
+            setLocationError('Geolocation is not supported in this browser')
+            return
+        }
 
         let isMounted = true
 
-        const updateCurrentPosition = (pos) => {
+        const acceptPosition = (pos) => {
             if (!isMounted) return
+
+            const accuracy = pos?.coords?.accuracy
+            if (!acceptedFixRef.current && accuracy && accuracy > minAcceptableAccuracyMeters) {
+                return
+            }
+
             const nextPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+            acceptedFixRef.current = true
             setCurrentPosition(nextPosition)
+            setLocationReady(true)
+            setLocationError(null)
 
             if (mapRef && !pickup && !destination) {
                 mapRef.panTo(nextPosition)
@@ -46,16 +61,15 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
 
         const handleLocationError = (error) => {
             if (!isMounted) return
+            setLocationError(error?.message || 'Unable to determine your current location')
             console.warn('Geolocation error:', error?.message || error)
         }
 
-        navigator.geolocation.getCurrentPosition(updateCurrentPosition, handleLocationError, geolocationOptions)
+        navigator.geolocation.getCurrentPosition(acceptPosition, handleLocationError, geolocationOptions)
+        const watchId = navigator.geolocation.watchPosition(acceptPosition, handleLocationError, geolocationOptions)
 
-        const watchId = navigator.geolocation.watchPosition(updateCurrentPosition, handleLocationError, geolocationOptions)
-
-        // Also poll every 15s for reliability on browsers that pause watch updates
         const interval = setInterval(() => {
-            navigator.geolocation.getCurrentPosition(updateCurrentPosition, handleLocationError, geolocationOptions)
+            navigator.geolocation.getCurrentPosition(acceptPosition, handleLocationError, geolocationOptions)
         }, 15000)
 
         return () => {
@@ -65,7 +79,6 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
         }
     }, [mapRef, pickup, destination])
 
-    // Geocode pickup and destination if directions fail or as a fallback
     useEffect(() => {
         if (isLoaded && pickup && destination) {
             const geocoder = new window.google.maps.Geocoder()
@@ -90,7 +103,6 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
         }
     }, [isLoaded, pickup, destination])
 
-    // Center and fit bounds to show both pickup and destination if directions are not loaded
     useEffect(() => {
         if (mapRef && pickupCoords && destCoords && !directions) {
             const bounds = new window.google.maps.LatLngBounds()
@@ -101,12 +113,11 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
     }, [mapRef, pickupCoords, destCoords, directions])
 
     useEffect(() => {
-        if (mapRef && currentPosition && !pickup && !destination) {
+        if (mapRef && currentPosition && locationReady && !pickup && !destination) {
             mapRef.panTo(currentPosition)
         }
-    }, [mapRef, currentPosition, pickup, destination])
+    }, [mapRef, currentPosition, pickup, destination, locationReady])
 
-    // Fetch directions
     useEffect(() => {
         if (isLoaded && pickup && destination) {
             const svc = new window.google.maps.DirectionsService()
@@ -131,14 +142,13 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
         setMapRef(map)
     }, [])
 
-    // Update captain marker and pan map when captainPosition prop changes
     useEffect(() => {
         if (captainPosition && captainPosition.ltd && captainPosition.lng) {
             const pos = { lat: captainPosition.ltd, lng: captainPosition.lng }
             setCaptainMarkerPos(pos)
             if (mapRef) mapRef.panTo(pos)
         }
-    }, [ captainPosition, mapRef ])
+    }, [captainPosition, mapRef])
 
     if (!isLoaded) {
         return (
@@ -153,7 +163,7 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
         <div className="relative w-full h-full">
             <GoogleMap
                 mapContainerStyle={containerStyle}
-                center={currentPosition}
+                center={currentPosition || defaultCenter}
                 zoom={zoom}
                 onLoad={onMapLoad}
                 mapTypeId={mapType}
@@ -163,12 +173,10 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
                     }
                 }}
                 options={{
-                    // ── Controls ─────────────────────────────────────────
-                    mapTypeControl: false,       // we build our own toggle below
-                    zoomControl: false,          // we build our own controls below
+                    mapTypeControl: false,
+                    zoomControl: false,
                     streetViewControl: false,
-                    fullscreenControl: false,    // hide — we handle fullscreen ourselves
-                    // ── Style ─────────────────────────────────────────────
+                    fullscreenControl: false,
                     clickableIcons: false,
                     gestureHandling: 'greedy',
                 }}
@@ -188,15 +196,15 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
                 ) : (
                     <>
                         {pickupCoords && (
-                            <Marker 
-                                position={pickupCoords} 
+                            <Marker
+                                position={pickupCoords}
                                 label={{ text: 'A', color: '#ffffff', fontWeight: 'bold' }}
                                 title="Pickup Location"
                             />
                         )}
                         {destCoords && (
-                            <Marker 
-                                position={destCoords} 
+                            <Marker
+                                position={destCoords}
                                 label={{ text: 'B', color: '#ffffff', fontWeight: 'bold' }}
                                 title="Destination Location"
                             />
@@ -211,13 +219,12 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
                                 }}
                             />
                         )}
-                        {!pickup && !destination && currentPosition && (
+                        {!pickup && !destination && locationReady && currentPosition && (
                             <Marker position={currentPosition} title="Your Location" />
                         )}
                     </>
                 )}
 
-                {/* Captain live location marker */}
                 {captainMarkerPos && (
                     <Marker
                         position={captainMarkerPos}
@@ -231,7 +238,22 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
                 )}
             </GoogleMap>
 
-            {/* ── Custom Map/Satellite toggle (top-left, won't be covered) ── */}
+            {!pickup && !destination && !locationReady && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/45 backdrop-blur-[1px]">
+                    <div className="flex flex-col items-center gap-2 rounded-2xl bg-white/90 px-4 py-3 shadow-lg border border-gray-100">
+                        <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-xs font-semibold text-gray-700">
+                            {locationError ? 'Enable location access' : 'Finding your current location...'}
+                        </p>
+                        {locationError && (
+                            <p className="text-[11px] text-gray-500 text-center max-w-[220px]">
+                                {locationError}
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <div className="absolute top-20 left-3 z-10 flex rounded-xl overflow-hidden shadow-lg border border-gray-200">
                 <button
                     onClick={() => setMapType('roadmap')}
@@ -255,15 +277,13 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
                 </button>
             </div>
 
-            {/* ── Center on me button ── */}
             <button
-                onClick={() => mapRef?.panTo(currentPosition)}
+                onClick={() => mapRef?.panTo(currentPosition || defaultCenter)}
                 className="absolute top-20 right-3 z-10 bg-white rounded-xl shadow-lg p-2.5 border border-gray-200 hover:bg-gray-50 transition"
             >
                 <i className="ri-navigation-fill text-base text-gray-700"></i>
             </button>
 
-            {/* ── Custom Zoom Controls ── */}
             <div className="absolute top-32 right-3 z-10 flex flex-col gap-2">
                 <button
                     onClick={() => setZoom(prev => Math.min(prev + 1, 20))}
