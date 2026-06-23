@@ -7,6 +7,11 @@ const containerStyle = {
 }
 
 const defaultCenter = { lat: 20.5937, lng: 78.9629 } // India center as fallback
+const geolocationOptions = {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0,
+}
 
 const LiveTracking = ({ pickup, destination, captainPosition }) => {
     const [ currentPosition, setCurrentPosition ] = useState(defaultCenter)
@@ -27,23 +32,34 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
     useEffect(() => {
         if (!navigator.geolocation) return
 
-        navigator.geolocation.getCurrentPosition((pos) => {
-            setCurrentPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-        })
+        let isMounted = true
 
-        const watchId = navigator.geolocation.watchPosition((pos) => {
-            setCurrentPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-            if (mapRef && !pickup && !destination) mapRef.panTo({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-        })
+        const updateCurrentPosition = (pos) => {
+            if (!isMounted) return
+            const nextPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+            setCurrentPosition(nextPosition)
 
-        // Also poll every 10s for reliability
+            if (mapRef && !pickup && !destination) {
+                mapRef.panTo(nextPosition)
+            }
+        }
+
+        const handleLocationError = (error) => {
+            if (!isMounted) return
+            console.warn('Geolocation error:', error?.message || error)
+        }
+
+        navigator.geolocation.getCurrentPosition(updateCurrentPosition, handleLocationError, geolocationOptions)
+
+        const watchId = navigator.geolocation.watchPosition(updateCurrentPosition, handleLocationError, geolocationOptions)
+
+        // Also poll every 15s for reliability on browsers that pause watch updates
         const interval = setInterval(() => {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                setCurrentPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude })
-            })
-        }, 10000)
+            navigator.geolocation.getCurrentPosition(updateCurrentPosition, handleLocationError, geolocationOptions)
+        }, 15000)
 
         return () => {
+            isMounted = false
             navigator.geolocation.clearWatch(watchId)
             clearInterval(interval)
         }
@@ -80,11 +96,15 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
             const bounds = new window.google.maps.LatLngBounds()
             bounds.extend(pickupCoords)
             bounds.extend(destCoords)
-            // also extend currentPosition if it's not too far
-            bounds.extend(currentPosition)
             mapRef.fitBounds(bounds)
         }
-    }, [mapRef, pickupCoords, destCoords, directions, currentPosition])
+    }, [mapRef, pickupCoords, destCoords, directions])
+
+    useEffect(() => {
+        if (mapRef && currentPosition && !pickup && !destination) {
+            mapRef.panTo(currentPosition)
+        }
+    }, [mapRef, currentPosition, pickup, destination])
 
     // Fetch directions
     useEffect(() => {
@@ -191,7 +211,9 @@ const LiveTracking = ({ pickup, destination, captainPosition }) => {
                                 }}
                             />
                         )}
-                        <Marker position={currentPosition} title="Your Location" />
+                        {!pickup && !destination && currentPosition && (
+                            <Marker position={currentPosition} title="Your Location" />
+                        )}
                     </>
                 )}
 

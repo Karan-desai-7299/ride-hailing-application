@@ -69,25 +69,45 @@ const CaptainHome = () => {
             userId: captain._id,
             userType: 'captain'
         })
+
+        const locationOptions = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+
+        const emitCurrentLocation = (position) => {
+            socket.emit('update-location-captain', {
+                userId: captain._id,
+                location: {
+                    ltd: position.coords.latitude,
+                    lng: position.coords.longitude
+                }
+            })
+        }
+
+        const handleLocationError = (error) => {
+            console.warn('Captain location error:', error?.message || error)
+        }
+
         const updateLocation = () => {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-
-                    socket.emit('update-location-captain', {
-                        userId: captain._id,
-                        location: {
-                            ltd: position.coords.latitude,
-                            lng: position.coords.longitude
-                        }
-                    })
-                })
+                navigator.geolocation.getCurrentPosition(emitCurrentLocation, handleLocationError, locationOptions)
             }
         }
 
-        const locationInterval = setInterval(updateLocation, 10000)
+        let watchId
+        if (navigator.geolocation) {
+            watchId = navigator.geolocation.watchPosition(emitCurrentLocation, handleLocationError, locationOptions)
+        }
+
+        const locationInterval = setInterval(updateLocation, 15000)
         updateLocation()
 
-        return () => clearInterval(locationInterval)
+        return () => {
+            clearInterval(locationInterval)
+            if (watchId) navigator.geolocation.clearWatch(watchId)
+        }
     }, [ captain, socket ])
 
     useEffect(() => {
