@@ -223,6 +223,10 @@ module.exports.getRideMessages = async (req, res) => {
             return res.status(400).json({ message: 'Ride id is required' });
         }
 
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+
         const ride = await rideModel.findById(rideId);
         if (!ride) {
             return res.status(404).json({ message: 'Ride not found' });

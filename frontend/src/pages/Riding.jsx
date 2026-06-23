@@ -50,7 +50,7 @@ const Riding = () => {
             if (!ride?._id) return
             try {
                 const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/messages`, {
-                    params: { rideId: ride._id },
+                    params: { rideId: ride._id, ts: Date.now() },
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 })
 
@@ -83,7 +83,7 @@ const Riding = () => {
 
         fetchMessages()
         if (ride?._id) {
-            intervalId = setInterval(fetchMessages, 4000)
+            intervalId = setInterval(fetchMessages, 2500)
         }
 
         return () => {

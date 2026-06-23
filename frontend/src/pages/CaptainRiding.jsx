@@ -31,7 +31,7 @@ const CaptainRiding = () => {
             if (!rideData?._id) return
             try {
                 const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/messages`, {
-                    params: { rideId: rideData._id },
+                    params: { rideId: rideData._id, ts: Date.now() },
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 })
 
@@ -64,7 +64,7 @@ const CaptainRiding = () => {
 
         fetchMessages()
         if (rideData?._id) {
-            intervalId = setInterval(fetchMessages, 4000)
+            intervalId = setInterval(fetchMessages, 2500)
         }
 
         return () => {
