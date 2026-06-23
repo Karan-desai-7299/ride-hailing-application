@@ -1,10 +1,10 @@
-import React, { useRef, useState, useEffect, useContext } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import FinishRide from '../components/FinishRide'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import LiveTracking from '../components/LiveTracking'
-import { SocketContext } from '../context/SocketContext'
+import axios from 'axios'
 
 const CaptainRiding = () => {
     const [ finishRidePanel, setFinishRidePanel ] = useState(false)
@@ -13,34 +13,94 @@ const CaptainRiding = () => {
     const location = useLocation()
     const rideData = location.state?.ride
 
-    const { socket } = useContext(SocketContext)
-
-    // ── Chat state ────────────────────────────────────────────────────────────────
     const [ chatOpen, setChatOpen ] = useState(false)
     const [ chatMessages, setChatMessages ] = useState([])
     const [ chatInput, setChatInput ] = useState('')
     const [ unread, setUnread ] = useState(0)
+    const lastSeenAtRef = useRef(null)
+    const chatOpenRef = useRef(false)
 
     useEffect(() => {
-        const handleReceiveMessage = (message) => {
-            setChatMessages(prev => [ ...prev, message ])
-            if (!chatOpen) setUnread(prev => prev + 1)
-        }
-        socket.on('receive-message', handleReceiveMessage)
-        return () => socket.off('receive-message', handleReceiveMessage)
-    }, [socket, chatOpen])
+        chatOpenRef.current = chatOpen
+    }, [chatOpen])
 
-    const sendMessage = () => {
+    useEffect(() => {
+        let intervalId
+
+        const fetchMessages = async () => {
+            if (!rideData?._id) return
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/messages`, {
+                    params: { rideId: rideData._id },
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                })
+
+                const normalizedMessages = (response.data || []).map(message => ({
+                    ...message,
+                    timestamp: message.createdAt
+                }))
+
+                setChatMessages(normalizedMessages)
+
+                if (chatOpenRef.current) {
+                    setUnread(0)
+                    if (normalizedMessages.length > 0) {
+                        lastSeenAtRef.current = normalizedMessages[normalizedMessages.length - 1].createdAt
+                    }
+                    return
+                }
+
+                const unseenCount = normalizedMessages.filter(message => {
+                    if (message.senderType === 'captain') return false
+                    if (!lastSeenAtRef.current) return true
+                    return new Date(message.createdAt) > new Date(lastSeenAtRef.current)
+                }).length
+
+                setUnread(unseenCount)
+            } catch (err) {
+                console.error('Error syncing chat messages:', err)
+            }
+        }
+
+        fetchMessages()
+        if (rideData?._id) {
+            intervalId = setInterval(fetchMessages, 4000)
+        }
+
+        return () => {
+            if (intervalId) clearInterval(intervalId)
+        }
+    }, [rideData?._id])
+
+    const sendMessage = async () => {
         if (!chatInput.trim() || !rideData?._id) return
-        const message = { text: chatInput.trim(), senderType: 'captain', timestamp: new Date().toISOString() }
-        setChatMessages(prev => [ ...prev, message ])
-        socket.emit('send-message', { rideId: rideData._id, text: chatInput.trim(), senderType: 'captain' })
-        setChatInput('')
+        try {
+            const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/messages`, {
+                rideId: rideData._id,
+                text: chatInput.trim()
+            }, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            })
+
+            const message = { ...response.data, timestamp: response.data.createdAt }
+            setChatMessages(prev => {
+                const next = [ ...prev.filter(item => item._id !== message._id), message ]
+                return next.sort((a, b) => new Date(a.createdAt || a.timestamp) - new Date(b.createdAt || b.timestamp))
+            })
+            setChatInput('')
+            setUnread(0)
+            lastSeenAtRef.current = message.createdAt
+        } catch (err) {
+            console.error('Error sending message:', err)
+        }
     }
 
     const openChat = () => {
         setChatOpen(true)
         setUnread(0)
+        if (chatMessages.length > 0) {
+            lastSeenAtRef.current = chatMessages[chatMessages.length - 1].createdAt || chatMessages[chatMessages.length - 1].timestamp
+        }
     }
 
     const distanceKm = rideData?.distance ? (rideData.distance / 1000).toFixed(1) : null
@@ -57,8 +117,6 @@ const CaptainRiding = () => {
 
     return (
         <div className='h-screen w-screen relative overflow-hidden bg-gray-50'>
-
-            {/* ── Chat Bottom Sheet ──────────────────────────────────────────── */}
             {chatOpen && (
                 <div className='fixed inset-0 z-[900] flex flex-col justify-end'>
                     <div className='absolute inset-0 bg-black/30 backdrop-blur-[2px]' onClick={() => setChatOpen(false)} />
@@ -84,8 +142,8 @@ const CaptainRiding = () => {
                                     <i className="ri-chat-3-line text-3xl"></i>
                                     <p className='text-sm'>Message your passenger</p>
                                 </div>
-                            ) : chatMessages.map((msg, i) => (
-                                <div key={i} className={`flex ${msg.senderType === 'captain' ? 'justify-end' : 'justify-start'}`}>
+                            ) : chatMessages.map((msg) => (
+                                <div key={msg._id || `${msg.senderType}-${msg.createdAt || msg.timestamp}`} className={`flex ${msg.senderType === 'captain' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
                                         msg.senderType === 'captain'
                                             ? 'bg-black text-white rounded-br-md'
@@ -93,7 +151,7 @@ const CaptainRiding = () => {
                                     }`}>
                                         <p>{msg.text}</p>
                                         <p className={`text-[10px] mt-1 ${msg.senderType === 'captain' ? 'text-gray-300' : 'text-gray-400'}`}>
-                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(msg.createdAt || msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
                                 </div>
@@ -119,7 +177,6 @@ const CaptainRiding = () => {
                 </div>
             )}
 
-            {/* ── Floating Chat Button ──────────────────────────────────────────── */}
             <button
                 onClick={openChat}
                 className='fixed bottom-[42%] right-5 z-50 w-12 h-12 bg-black text-white rounded-full shadow-xl flex items-center justify-center hover:bg-gray-800 active:scale-95 transition-all'
@@ -132,12 +189,10 @@ const CaptainRiding = () => {
                 )}
             </button>
 
-            {/* ── Map (background) ─────────────────────────── */}
             <div className='h-screen w-screen absolute inset-0 z-0'>
                 <LiveTracking pickup={rideData?.pickup} destination={rideData?.destination} />
             </div>
 
-            {/* ── Top bar: logo + exit ──────────────────────────────────── */}
             <div className='absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pt-4 pointer-events-none'>
                 <img
                     className='h-8 pointer-events-auto'
@@ -153,17 +208,13 @@ const CaptainRiding = () => {
                 </Link>
             </div>
 
-            {/* ── Bottom info panel ─────────────────────────────────────── */}
             <div className='absolute bottom-0 left-0 right-0 z-10'>
-                {/* Pull-up handle */}
                 <div
                     className='bg-white rounded-t-3xl shadow-2xl px-5 pt-3 pb-5 border-t border-gray-100 cursor-pointer'
                     onClick={() => setPanelExpanded(!panelExpanded)}
                 >
-                    {/* Drag pill */}
                     <div className='w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4'></div>
 
-                    {/* Passenger row */}
                     <div className='flex items-center justify-between mb-4'>
                         <div className='flex items-center gap-3'>
                             <div className='h-11 w-11 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white font-bold text-lg shadow'>
@@ -176,7 +227,6 @@ const CaptainRiding = () => {
                                 <p className='text-xs text-gray-400'>Passenger</p>
                             </div>
                         </div>
-                        {/* Trip stats chips */}
                         <div className='flex gap-2'>
                             {distanceKm && (
                                 <div className='bg-gray-100 rounded-xl px-3 py-1.5 text-center'>
@@ -197,7 +247,6 @@ const CaptainRiding = () => {
                         </div>
                     </div>
 
-                    {/* Route info — only shown when expanded */}
                     {panelExpanded && (
                         <div className='mb-4 bg-gray-50 rounded-2xl overflow-hidden'>
                             <div className='flex items-center gap-3 px-4 py-3 border-b border-gray-100'>
@@ -221,7 +270,6 @@ const CaptainRiding = () => {
                         </div>
                     )}
 
-                    {/* Complete Ride button */}
                     <button
                         onClick={(e) => {
                             e.stopPropagation()
@@ -235,7 +283,6 @@ const CaptainRiding = () => {
                 </div>
             </div>
 
-            {/* ── Finish Ride slide-up panel ────────────────────────────── */}
             <div
                 ref={finishRidePanelRef}
                 className='fixed w-full z-[500] bottom-0 translate-y-full bg-white rounded-t-3xl px-5 py-8 pt-12 shadow-2xl'

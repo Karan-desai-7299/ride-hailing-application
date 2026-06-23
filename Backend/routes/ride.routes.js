@@ -64,6 +64,19 @@ router.get('/active-ride-captain',
     rideController.getActiveRideCaptain
 )
 
+router.get('/messages',
+    authMiddleware.authEither,
+    query('rideId').isMongoId().withMessage('Invalid ride id'),
+    rideController.getRideMessages
+)
+
+router.post('/messages',
+    authMiddleware.authEither,
+    body('rideId').isMongoId().withMessage('Invalid ride id'),
+    body('text').isString().isLength({ min: 1 }).withMessage('Message is required'),
+    rideController.sendRideMessage
+)
+
 router.post('/cancel',
     authMiddleware.authUser,
     body('rideId').isMongoId().withMessage('Invalid ride id'),

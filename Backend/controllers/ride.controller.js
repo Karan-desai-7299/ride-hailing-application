@@ -3,6 +3,7 @@ const { validationResult } = require('express-validator');
 const mapService = require('../services/maps.service');
 const { sendMessageToSocketId } = require('../socket');
 const rideModel = require('../models/ride.model');
+const chatMessageModel = require('../models/chatMessage.model');
 
 
 module.exports.createRide = async (req, res) => {
@@ -210,6 +211,81 @@ module.exports.getActiveRideCaptain = async (req, res) => {
             return res.status(404).json({ message: 'No active ride found' });
         }
         return res.status(200).json(ride);
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
+    }
+}
+
+module.exports.getRideMessages = async (req, res) => {
+    try {
+        const { rideId } = req.query;
+        if (!rideId) {
+            return res.status(400).json({ message: 'Ride id is required' });
+        }
+
+        const ride = await rideModel.findById(rideId);
+        if (!ride) {
+            return res.status(404).json({ message: 'Ride not found' });
+        }
+
+        const isUser = req.authType === 'user' && String(ride.user) === String(req.user._id);
+        const isCaptain = req.authType === 'captain' && ride.captain && String(ride.captain) === String(req.captain._id);
+        if (!isUser && !isCaptain) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+
+        const messages = await chatMessageModel.find({ ride: rideId }).sort({ createdAt: 1 });
+        return res.status(200).json(messages);
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
+    }
+}
+
+module.exports.sendRideMessage = async (req, res) => {
+    try {
+        const { rideId, text } = req.body;
+        if (!rideId || !text?.trim()) {
+            return res.status(400).json({ message: 'Ride id and text are required' });
+        }
+
+        const ride = await rideModel.findById(rideId).populate('user').populate('captain');
+        if (!ride) {
+            return res.status(404).json({ message: 'Ride not found' });
+        }
+
+        const senderType = req.authType;
+        const isUser = senderType === 'user' && String(ride.user._id) === String(req.user._id);
+        const isCaptain = senderType === 'captain' && ride.captain && String(ride.captain._id) === String(req.captain._id);
+        if (!isUser && !isCaptain) {
+            return res.status(403).json({ message: 'Forbidden' });
+        }
+
+        const message = await chatMessageModel.create({
+            ride: rideId,
+            senderType,
+            text: text.trim()
+        });
+
+        const payload = {
+            _id: message._id,
+            ride: message.ride,
+            senderType: message.senderType,
+            text: message.text,
+            createdAt: message.createdAt
+        };
+
+        const recipientSocketId = senderType === 'user'
+            ? ride.captain?.socketId
+            : ride.user?.socketId;
+
+        if (recipientSocketId) {
+            sendMessageToSocketId(recipientSocketId, {
+                event: 'receive-message',
+                data: payload
+            });
+        }
+
+        return res.status(201).json(payload);
     } catch (err) {
         return res.status(500).json({ message: err.message });
     }

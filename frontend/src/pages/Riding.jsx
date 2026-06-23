@@ -1,8 +1,6 @@
-import React, { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { useEffect, useContext } from 'react'
+import React, { useState, useEffect, useContext, useRef } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { SocketContext } from '../context/SocketContext'
-import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import LiveTracking from '../components/LiveTracking'
 
@@ -15,20 +13,17 @@ const Riding = () => {
     const distanceKm = ride?.distance ? (ride.distance / 1000).toFixed(1) : null
     const durationMin = ride?.duration ? Math.round(ride.duration / 60) : null
 
-    // ── Real-time captain location ─────────────────────────────────────────
     const [ captainPosition, setCaptainPosition ] = useState(null)
-
-    // ── Chat state ────────────────────────────────────────────────────────
     const [ chatOpen, setChatOpen ] = useState(false)
     const [ chatMessages, setChatMessages ] = useState([])
     const [ chatInput, setChatInput ] = useState('')
     const [ unread, setUnread ] = useState(0)
-
-    // ── Post-ride Rating state ────────────────────────────────────────────
     const [ showRating, setShowRating ] = useState(false)
     const [ starRating, setStarRating ] = useState(0)
     const [ hoverStar, setHoverStar ] = useState(0)
     const [ reviewText, setReviewText ] = useState('')
+    const lastSeenAtRef = useRef(null)
+    const chatOpenRef = useRef(false)
 
     useEffect(() => {
         const handleRideEnded = () => setShowRating(true)
@@ -45,13 +40,56 @@ const Riding = () => {
     }, [socket])
 
     useEffect(() => {
-        const handleReceiveMessage = (message) => {
-            setChatMessages(prev => [ ...prev, message ])
-            if (!chatOpen) setUnread(prev => prev + 1)
+        chatOpenRef.current = chatOpen
+    }, [chatOpen])
+
+    useEffect(() => {
+        let intervalId
+
+        const fetchMessages = async () => {
+            if (!ride?._id) return
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/messages`, {
+                    params: { rideId: ride._id },
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                })
+
+                const normalizedMessages = (response.data || []).map(message => ({
+                    ...message,
+                    timestamp: message.createdAt
+                }))
+
+                setChatMessages(normalizedMessages)
+
+                if (chatOpenRef.current) {
+                    setUnread(0)
+                    if (normalizedMessages.length > 0) {
+                        lastSeenAtRef.current = normalizedMessages[normalizedMessages.length - 1].createdAt
+                    }
+                    return
+                }
+
+                const unseenCount = normalizedMessages.filter(message => {
+                    if (message.senderType === 'user') return false
+                    if (!lastSeenAtRef.current) return true
+                    return new Date(message.createdAt) > new Date(lastSeenAtRef.current)
+                }).length
+
+                setUnread(unseenCount)
+            } catch (err) {
+                console.error('Error syncing chat messages:', err)
+            }
         }
-        socket.on('receive-message', handleReceiveMessage)
-        return () => socket.off('receive-message', handleReceiveMessage)
-    }, [socket, chatOpen])
+
+        fetchMessages()
+        if (ride?._id) {
+            intervalId = setInterval(fetchMessages, 4000)
+        }
+
+        return () => {
+            if (intervalId) clearInterval(intervalId)
+        }
+    }, [ride?._id])
 
     useEffect(() => {
         let intervalId
@@ -80,28 +118,43 @@ const Riding = () => {
         }
     }, [ride?._id])
 
-    const sendMessage = () => {
+    const sendMessage = async () => {
         if (!chatInput.trim() || !ride?._id) return
-        const message = { text: chatInput.trim(), senderType: 'user', timestamp: new Date().toISOString() }
-        setChatMessages(prev => [ ...prev, message ])
-        socket.emit('send-message', { rideId: ride._id, text: chatInput.trim(), senderType: 'user' })
-        setChatInput('')
+        try {
+            const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/messages`, {
+                rideId: ride._id,
+                text: chatInput.trim()
+            }, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+            })
+
+            const message = { ...response.data, timestamp: response.data.createdAt }
+            setChatMessages(prev => {
+                const next = [ ...prev.filter(item => item._id !== message._id), message ]
+                return next.sort((a, b) => new Date(a.createdAt || a.timestamp) - new Date(b.createdAt || b.timestamp))
+            })
+            setChatInput('')
+            setUnread(0)
+            lastSeenAtRef.current = message.createdAt
+        } catch (err) {
+            console.error('Error sending message:', err)
+        }
     }
 
     const openChat = () => {
         setChatOpen(true)
         setUnread(0)
+        if (chatMessages.length > 0) {
+            lastSeenAtRef.current = chatMessages[chatMessages.length - 1].createdAt || chatMessages[chatMessages.length - 1].timestamp
+        }
     }
 
     const submitRating = () => {
-        // Rating submitted (can be wired to an API later)
         navigate('/home')
     }
 
     return (
         <div className='h-screen relative overflow-hidden'>
-
-            {/* ── Post-Ride Rating Modal ──────────────────────────────────────── */}
             {showRating && (
                 <div className='fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4'>
                     <div className='bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl'>
@@ -115,9 +168,8 @@ const Riding = () => {
                             </p>
                         </div>
 
-                        {/* Stars */}
                         <div className='flex justify-center gap-2 my-4'>
-                            {[1,2,3,4,5].map(star => (
+                            {[1, 2, 3, 4, 5].map(star => (
                                 <button
                                     key={star}
                                     onMouseEnter={() => setHoverStar(star)}
@@ -136,7 +188,6 @@ const Riding = () => {
                             </p>
                         )}
 
-                        {/* Review input */}
                         <textarea
                             value={reviewText}
                             onChange={e => setReviewText(e.target.value)}
@@ -162,12 +213,10 @@ const Riding = () => {
                 </div>
             )}
 
-            {/* ── Chat Bottom Sheet ────────────────────────────────────────────── */}
             {chatOpen && (
                 <div className='fixed inset-0 z-[900] flex flex-col justify-end'>
                     <div className='absolute inset-0 bg-black/30 backdrop-blur-[2px]' onClick={() => setChatOpen(false)} />
                     <div className='relative bg-white rounded-t-3xl shadow-2xl flex flex-col' style={{ maxHeight: '70vh' }}>
-                        {/* Chat header */}
                         <div className='flex items-center justify-between px-5 py-4 border-b border-gray-100'>
                             <div className='flex items-center gap-3'>
                                 <div className='w-9 h-9 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white font-bold text-sm'>
@@ -183,15 +232,14 @@ const Riding = () => {
                             </button>
                         </div>
 
-                        {/* Messages */}
                         <div className='flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2' style={{ minHeight: '200px' }}>
                             {chatMessages.length === 0 ? (
                                 <div className='flex flex-col items-center justify-center h-full text-gray-400 gap-2 py-8'>
                                     <i className="ri-chat-3-line text-3xl"></i>
                                     <p className='text-sm'>Say hi to your driver!</p>
                                 </div>
-                            ) : chatMessages.map((msg, i) => (
-                                <div key={i} className={`flex ${msg.senderType === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            ) : chatMessages.map((msg) => (
+                                <div key={msg._id || `${msg.senderType}-${msg.createdAt || msg.timestamp}`} className={`flex ${msg.senderType === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
                                         msg.senderType === 'user'
                                             ? 'bg-black text-white rounded-br-md'
@@ -199,14 +247,13 @@ const Riding = () => {
                                     }`}>
                                         <p>{msg.text}</p>
                                         <p className={`text-[10px] mt-1 ${msg.senderType === 'user' ? 'text-gray-300' : 'text-gray-400'}`}>
-                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(msg.createdAt || msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </p>
                                     </div>
                                 </div>
                             ))}
                         </div>
 
-                        {/* Input */}
                         <div className='px-4 py-3 border-t border-gray-100 flex gap-2 items-center'>
                             <input
                                 value={chatInput}
@@ -226,7 +273,6 @@ const Riding = () => {
                 </div>
             )}
 
-            {/* ── Floating Chat Button ─────────────────────────────────────────── */}
             <button
                 onClick={openChat}
                 className='fixed bottom-[52%] right-5 z-50 w-12 h-12 bg-black text-white rounded-full shadow-xl flex items-center justify-center hover:bg-gray-800 active:scale-95 transition-all'
@@ -246,7 +292,6 @@ const Riding = () => {
                 <LiveTracking pickup={ride?.pickup} destination={ride?.destination} captainPosition={captainPosition} />
             </div>
             <div className='h-1/2 p-4 overflow-y-auto'>
-                {/* Captain Info */}
                 <div className='flex items-center justify-between mb-4'>
                     <div className='flex items-center gap-3'>
                         <div className='h-12 w-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center text-white font-bold text-xl shadow'>
@@ -261,15 +306,18 @@ const Riding = () => {
                         <span className='text-sm font-bold bg-gray-100 px-3 py-1 rounded-lg tracking-widest'>
                             {ride?.captain?.vehicle?.plate}
                         </span>
-                        <img className='h-10 mt-1 ml-auto' src={
-                            vehicleType === 'moto' ? 'https://img.icons8.com/color/2x/motorcycle.png' :
-                            vehicleType === 'auto' ? 'https://img.icons8.com/color/2x/auto-rickshaw.png' :
-                            'https://swyft.pl/wp-content/uploads/2023/05/how-many-people-can-a-uberx-take.jpg'
-                        } alt="" />
+                        <img
+                            className='h-10 mt-1 ml-auto'
+                            src={
+                                vehicleType === 'moto' ? 'https://img.icons8.com/color/2x/motorcycle.png' :
+                                vehicleType === 'auto' ? 'https://img.icons8.com/color/2x/auto-rickshaw.png' :
+                                'https://swyft.pl/wp-content/uploads/2023/05/how-many-people-can-a-uberx-take.jpg'
+                            }
+                            alt=""
+                        />
                     </div>
                 </div>
 
-                {/* AI Trip Stats */}
                 {(distanceKm || durationMin) && (
                     <div className='grid grid-cols-3 gap-2 mb-3'>
                         <div className='bg-gray-50 rounded-xl p-2 text-center'>
@@ -287,7 +335,6 @@ const Riding = () => {
                     </div>
                 )}
 
-                {/* Route */}
                 <div className='flex items-center gap-4 p-3 border-b border-gray-100'>
                     <div className='h-7 w-7 rounded-full bg-red-100 flex items-center justify-center'>
                         <i className="ri-map-pin-2-fill text-red-600 text-xs"></i>

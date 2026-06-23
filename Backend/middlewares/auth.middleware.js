@@ -67,3 +67,41 @@ module.exports.authCaptain = async (req, res, next) => {
         return res.status(500).json({ message: 'Authentication error' });
     }
 };
+
+module.exports.authEither = async (req, res, next) => {
+    try {
+        const token = req.cookies.token || req.headers.authorization?.split(' ')[1];
+
+        if (!token) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const isBlacklisted = await blackListTokenModel.findOne({ token });
+        if (isBlacklisted) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await userModel.findById(decoded._id);
+        if (user) {
+            req.user = user;
+            req.authType = 'user';
+            return next();
+        }
+
+        const captain = await captainModel.findById(decoded._id);
+        if (captain) {
+            req.captain = captain;
+            req.authType = 'captain';
+            return next();
+        }
+
+        return res.status(401).json({ message: 'Unauthorized' });
+    } catch (err) {
+        if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+        console.error('authEither middleware error:', err.message);
+        return res.status(500).json({ message: 'Authentication error' });
+    }
+};
