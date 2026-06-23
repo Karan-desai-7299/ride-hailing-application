@@ -153,6 +153,20 @@ module.exports.getCaptainHistory = async (req, res) => {
     }
 }
 
+module.exports.getPendingRideRequests = async (req, res) => {
+    try {
+        const vehicleType = req.captain?.vehicle?.vehicleType;
+        const rides = await rideModel.find({
+            status: 'pending',
+            vehicleType
+        }).populate('user').sort({ _id: -1 });
+
+        return res.status(200).json(rides);
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
+    }
+}
+
 module.exports.cancelRide = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

@@ -97,6 +97,48 @@ const Home = () => {
     }, [ user ])
 
     useEffect(() => {
+        let intervalId
+
+        const syncRideState = async () => {
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/active-ride`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                })
+
+                const activeRide = response.data
+                if (!activeRide) return
+
+                if (activeRide.status === 'ongoing') {
+                    navigate('/riding', { state: { ride: activeRide } })
+                } else if (activeRide.status === 'accepted') {
+                    setPickup(activeRide.pickup)
+                    setDestination(activeRide.destination)
+                    setRide(activeRide)
+                    setWaitingForDriver(true)
+                    setVehicleFound(false)
+                } else if (activeRide.status === 'pending') {
+                    setPickup(activeRide.pickup)
+                    setDestination(activeRide.destination)
+                    setRideId(activeRide._id)
+                    setVehicleFound(true)
+                }
+            } catch (err) {
+                if (err?.response?.status !== 404) {
+                    console.error('Error syncing ride state:', err)
+                }
+            }
+        }
+
+        if (user?._id) {
+            intervalId = setInterval(syncRideState, 5000)
+        }
+
+        return () => {
+            if (intervalId) clearInterval(intervalId)
+        }
+    }, [ user?._id, navigate ])
+
+    useEffect(() => {
         const handleRideConfirmed = (ride) => {
             setVehicleFound(false)
             setWaitingForDriver(true)

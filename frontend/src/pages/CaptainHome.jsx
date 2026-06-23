@@ -21,6 +21,7 @@ const CaptainHome = () => {
     const [ ride, setRide ] = useState(null)
     const [ historyOpen, setHistoryOpen ] = useState(false)
     const [ rideHistory, setRideHistory ] = useState([])
+    const lastPendingRideIdRef = useRef(null)
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -93,10 +94,43 @@ const CaptainHome = () => {
         const handleNewRide = (data) => {
             setRide(data)
             setRidePopupPanel(true)
+            lastPendingRideIdRef.current = data?._id || null
         }
         socket.on('new-ride', handleNewRide)
         return () => socket.off('new-ride', handleNewRide)
     }, [socket])
+
+    useEffect(() => {
+        let intervalId
+
+        const fetchPendingRides = async () => {
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/pending-requests`, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                })
+
+                const latestRide = response.data?.[0]
+                if (latestRide && latestRide._id !== lastPendingRideIdRef.current) {
+                    lastPendingRideIdRef.current = latestRide._id
+                    setRide(latestRide)
+                    setRidePopupPanel(true)
+                }
+            } catch (err) {
+                console.error('Error polling pending rides:', err)
+            }
+        }
+
+        if (captain?._id) {
+            fetchPendingRides()
+            intervalId = setInterval(fetchPendingRides, 5000)
+        }
+
+        return () => {
+            if (intervalId) clearInterval(intervalId)
+        }
+    }, [captain?._id])
 
     async function confirmRide() {
 

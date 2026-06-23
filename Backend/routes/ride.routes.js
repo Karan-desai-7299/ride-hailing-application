@@ -49,6 +49,11 @@ router.get('/captain-history',
     rideController.getCaptainHistory
 )
 
+router.get('/pending-requests',
+    authMiddleware.authCaptain,
+    rideController.getPendingRideRequests
+)
+
 router.get('/active-ride',
     authMiddleware.authUser,
     rideController.getActiveRide

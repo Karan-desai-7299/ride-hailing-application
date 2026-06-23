@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useEffect, useContext } from 'react'
 import { SocketContext } from '../context/SocketContext'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import LiveTracking from '../components/LiveTracking'
 
 const Riding = () => {
@@ -51,6 +52,33 @@ const Riding = () => {
         socket.on('receive-message', handleReceiveMessage)
         return () => socket.off('receive-message', handleReceiveMessage)
     }, [socket, chatOpen])
+
+    useEffect(() => {
+        let intervalId
+
+        const syncRideStatus = async () => {
+            if (!ride?._id) return
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/user-history`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                })
+                const currentRide = response.data?.find(item => item._id === ride._id)
+                if (currentRide?.status === 'completed') {
+                    setShowRating(true)
+                }
+            } catch (err) {
+                console.error('Error syncing ride status:', err)
+            }
+        }
+
+        if (ride?._id) {
+            intervalId = setInterval(syncRideStatus, 5000)
+        }
+
+        return () => {
+            if (intervalId) clearInterval(intervalId)
+        }
+    }, [ride?._id])
 
     const sendMessage = () => {
         if (!chatInput.trim() || !ride?._id) return
