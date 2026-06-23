@@ -10,8 +10,6 @@ const captainRoutes = require('./routes/captain.routes');
 const mapsRoutes = require('./routes/maps.routes');
 const rideRoutes = require('./routes/ride.routes');
 
-connectToDb();
-
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -20,6 +18,15 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+app.use(async (req, res, next) => {
+    try {
+        await connectToDb();
+        next();
+    } catch (err) {
+        next(err);
+    }
+});
 
 app.get('/', (req, res) => {
     res.send('Uber Backend Running ✅');
@@ -30,7 +37,6 @@ app.use('/captains', captainRoutes);
 app.use('/maps', mapsRoutes);
 app.use('/rides', rideRoutes);
 
-// ─── Global Error Handler ─────────────────────────────────────────────────
 app.use((err, req, res, next) => {
     console.error('Express error:', err.message);
     res.status(err.status || 500).json({
@@ -38,4 +44,3 @@ app.use((err, req, res, next) => {
     });
 });
 module.exports = app;
-

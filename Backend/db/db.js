@@ -1,33 +1,55 @@
 const mongoose = require('mongoose');
 
+const globalForMongoose = global;
+if (!globalForMongoose.__uberMongo) {
+    globalForMongoose.__uberMongo = {
+        conn: null,
+        promise: null,
+        listenersAttached: false
+    };
+}
+
 function connectToDb() {
-    mongoose.connect(process.env.DB_CONNECT, {
-        serverSelectionTimeoutMS: 10000,   // 10s to find a server
-        socketTimeoutMS: 45000,            // 45s socket idle timeout
-        heartbeatFrequencyMS: 10000,       // ping Atlas every 10s to keep alive
-        retryWrites: true,
-        w: 'majority'
-    }).then(() => {
-        console.log('Connected to DB');
-    }).catch(err => {
-        console.error('DB Connection Error:', err.message);
-        // Retry after 5 seconds
-        setTimeout(connectToDb, 5000);
-    });
+    const cache = globalForMongoose.__uberMongo;
 
-    // Handle connection events
-    mongoose.connection.on('error', (err) => {
-        console.error('Mongoose connection error:', err.message);
-    });
+    if (cache.conn || mongoose.connection.readyState === 1) {
+        cache.conn = mongoose.connection;
+        return Promise.resolve(mongoose.connection);
+    }
 
-    mongoose.connection.on('disconnected', () => {
-        console.warn('MongoDB disconnected. Attempting to reconnect...');
-        setTimeout(connectToDb, 5000);
-    });
+    if (!cache.promise) {
+        cache.promise = mongoose.connect(process.env.DB_CONNECT, {
+            serverSelectionTimeoutMS: 10000,
+            socketTimeoutMS: 45000,
+            heartbeatFrequencyMS: 10000,
+            retryWrites: true,
+            w: 'majority'
+        }).then((conn) => {
+            cache.conn = conn;
+            console.log('Connected to DB');
+            return conn;
+        }).catch((err) => {
+            cache.promise = null;
+            console.error('DB Connection Error:', err.message);
+            throw err;
+        });
+    }
 
-    mongoose.connection.on('reconnected', () => {
-        console.log('MongoDB reconnected successfully.');
-    });
+    if (!cache.listenersAttached) {
+        mongoose.connection.on('error', (err) => {
+            console.error('Mongoose connection error:', err.message);
+        });
+
+        mongoose.connection.on('disconnected', () => {
+            console.warn('MongoDB disconnected.');
+            cache.conn = null;
+            cache.promise = null;
+        });
+
+        cache.listenersAttached = true;
+    }
+
+    return cache.promise;
 }
 
 module.exports = connectToDb;
