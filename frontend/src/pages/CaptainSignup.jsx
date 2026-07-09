@@ -54,7 +54,7 @@ const CaptainSignup = () => {
                 </div>
 
                 <h2 className='text-2xl font-bold mb-1'>Register as Captain</h2>
-                <p className='text-gray-500 text-sm mb-5'>Join the Uber driver fleet</p>
+                <p className='text-gray-500 text-sm mb-5'>Join the driver fleet</p>
 
                 {error && (
                     <div className='bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4 flex items-center gap-2'>

@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+/* eslint-disable react/prop-types */
+import { useState } from 'react'
 
 const VehiclePanel = (props) => {
     const [ selected, setSelected ] = useState(null)
@@ -10,7 +11,7 @@ const VehiclePanel = (props) => {
     const vehicles = [
         {
             type: 'car',
-            label: 'UberGo',
+            label: 'RideGo',
             capacity: 4,
             img: 'https://swyft.pl/wp-content/uploads/2023/05/how-many-people-can-a-uberx-take.jpg',
             desc: 'Comfortable car for up to 4',
@@ -28,7 +29,7 @@ const VehiclePanel = (props) => {
         },
         {
             type: 'auto',
-            label: 'UberAuto',
+            label: 'RideAuto',
             capacity: 3,
             img: 'https://img.icons8.com/color/2x/auto-rickshaw.png',
             desc: 'Auto rickshaw for 3',

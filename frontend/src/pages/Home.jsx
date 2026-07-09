@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useContext } from 'react'
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import axios from 'axios';
@@ -9,7 +9,6 @@ import ConfirmRide from '../components/ConfirmRide';
 import LookingForDriver from '../components/LookingForDriver';
 import WaitingForDriver from '../components/WaitingForDriver';
 import { SocketContext } from '../context/SocketContext';
-import { useContext } from 'react';
 import { UserDataContext } from '../context/UserContext';
 import { useNavigate, Link } from 'react-router-dom';
 import LiveTracking from '../components/LiveTracking';
@@ -61,7 +60,7 @@ const Home = () => {
 
     useEffect(() => {
         socket.emit("join", { userType: "user", userId: user._id })
-    }, [ user ])
+    }, [ socket, user ])
 
     // ── Active Ride Recovery on page refresh ─────────────────────────────────
     useEffect(() => {
@@ -94,7 +93,7 @@ const Home = () => {
             }
         }
         if (user?._id) recoverActiveRide()
-    }, [ user ])
+    }, [ user, navigate ])
 
     useEffect(() => {
         let intervalId
@@ -155,7 +154,7 @@ const Home = () => {
             socket.off('ride-confirmed', handleRideConfirmed)
             socket.off('ride-started', handleRideStarted)
         }
-    }, [socket])
+    }, [socket, navigate])
 
 
     const handlePickupChange = async (e) => {
@@ -297,7 +296,12 @@ const Home = () => {
 
     return (
         <div className='h-screen relative overflow-hidden'>
-            <img className='w-16 absolute left-5 top-5' src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png" alt="" />
+            <div className='absolute left-5 top-5 inline-flex items-center gap-2 rounded-2xl bg-white/95 px-3 py-2 shadow-md border border-gray-100'>
+                <div className='h-8 w-8 rounded-xl bg-black text-white flex items-center justify-center'>
+                    <i className="ri-route-line text-lg"></i>
+                </div>
+                <span className='text-sm font-semibold text-gray-900'>Ride</span>
+            </div>
             <Link to='/user/logout' className='fixed right-5 top-5 h-10 w-10 bg-white flex items-center justify-center rounded-full z-20 shadow-md'>
                 <i className="text-lg font-medium ri-logout-box-r-line"></i>
             </Link>

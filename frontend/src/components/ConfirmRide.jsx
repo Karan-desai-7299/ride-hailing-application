@@ -1,7 +1,7 @@
-import React from 'react'
+/* eslint-disable react/prop-types */
 
 const ConfirmRide = (props) => {
-    const vehicleLabels = { car: 'UberGo', moto: 'Moto', auto: 'UberAuto' }
+    const vehicleLabels = { car: 'RideGo', moto: 'Moto', auto: 'RideAuto' }
     const vehicleCapacity = { car: 4, moto: 1, auto: 3 }
 
     return (
@@ -21,7 +21,7 @@ const ConfirmRide = (props) => {
                 } alt="" />
                 <div className='flex-1'>
                     <h4 className='text-lg font-semibold'>
-                        {vehicleLabels[props.vehicleType] || 'UberGo'}
+                        {vehicleLabels[props.vehicleType] || 'RideGo'}
                         <span className='ml-2 text-sm font-normal text-gray-500'>
                             <i className="ri-user-3-fill"></i> {vehicleCapacity[props.vehicleType] || 4}
                         </span>

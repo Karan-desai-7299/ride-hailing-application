@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react'
+import { useState, useEffect, useContext, useRef } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { SocketContext } from '../context/SocketContext'
 import axios from 'axios'
@@ -38,6 +38,29 @@ const Riding = () => {
         socket.on('captain-location-updated', handleCaptainLocation)
         return () => socket.off('captain-location-updated', handleCaptainLocation)
     }, [socket])
+
+    useEffect(() => {
+        if (!ride?._id) return
+
+        const handleReceiveMessage = (message) => {
+            if (!message || String(message.ride) !== String(ride._id)) return
+
+            setChatMessages(prev => {
+                const next = [ ...prev.filter(item => item._id !== message._id), {
+                    ...message,
+                    timestamp: message.createdAt || message.timestamp
+                } ]
+                return next.sort((a, b) => new Date(a.createdAt || a.timestamp) - new Date(b.createdAt || b.timestamp))
+            })
+
+            if (!chatOpenRef.current && message.senderType === 'captain') {
+                setUnread(prev => prev + 1)
+            }
+        }
+
+        socket.on('receive-message', handleReceiveMessage)
+        return () => socket.off('receive-message', handleReceiveMessage)
+    }, [socket, ride?._id])
 
     useEffect(() => {
         chatOpenRef.current = chatOpen

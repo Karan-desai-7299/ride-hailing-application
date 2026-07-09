@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import { useState, useContext } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { UserDataContext } from '../context/UserContext'
@@ -49,7 +49,7 @@ const UserSignup = () => {
                 </div>
 
                 <h2 className='text-2xl font-bold mb-1'>Create account</h2>
-                <p className='text-gray-500 text-sm mb-5'>Join Uber and start riding today</p>
+                <p className='text-gray-500 text-sm mb-5'>Join the app and start riding today</p>
 
                 {error && (
                     <div className='bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-4 flex items-center gap-2'>

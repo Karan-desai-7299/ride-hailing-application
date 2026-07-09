@@ -37,7 +37,12 @@ const UserLogin = () => {
         <div className='p-7 h-screen flex flex-col justify-between'>
             <div>
                 <div className='flex items-center justify-between mb-10'>
-                    <img className='w-16' src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQYQy-OIkA6In0fTvVwZADPmFFibjmszu2A0g&s" alt="" />
+                    <div className='inline-flex items-center gap-2 text-gray-900'>
+                        <div className='h-10 w-10 rounded-2xl bg-black text-white flex items-center justify-center'>
+                            <i className="ri-route-line text-xl"></i>
+                        </div>
+                        <span className='text-lg font-semibold'>Ride</span>
+                    </div>
                     <Link to='/' className='text-sm font-medium flex items-center gap-1 text-gray-500 hover:text-black'>
                         <i className="ri-arrow-left-line"></i> Back
                     </Link>

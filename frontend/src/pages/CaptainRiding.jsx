@@ -1,10 +1,11 @@
-import React, { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useContext } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import FinishRide from '../components/FinishRide'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import LiveTracking from '../components/LiveTracking'
 import axios from 'axios'
+import { SocketContext } from '../context/SocketContext'
 
 const CaptainRiding = () => {
     const [ finishRidePanel, setFinishRidePanel ] = useState(false)
@@ -12,6 +13,7 @@ const CaptainRiding = () => {
     const finishRidePanelRef = useRef(null)
     const location = useLocation()
     const rideData = location.state?.ride
+    const { socket } = useContext(SocketContext)
 
     const [ chatOpen, setChatOpen ] = useState(false)
     const [ chatMessages, setChatMessages ] = useState([])
@@ -23,6 +25,29 @@ const CaptainRiding = () => {
     useEffect(() => {
         chatOpenRef.current = chatOpen
     }, [chatOpen])
+
+    useEffect(() => {
+        if (!rideData?._id) return
+
+        const handleReceiveMessage = (message) => {
+            if (!message || String(message.ride) !== String(rideData._id)) return
+
+            setChatMessages(prev => {
+                const next = [ ...prev.filter(item => item._id !== message._id), {
+                    ...message,
+                    timestamp: message.createdAt || message.timestamp
+                } ]
+                return next.sort((a, b) => new Date(a.createdAt || a.timestamp) - new Date(b.createdAt || b.timestamp))
+            })
+
+            if (!chatOpenRef.current && message.senderType === 'user') {
+                setUnread(prev => prev + 1)
+            }
+        }
+
+        socket.on('receive-message', handleReceiveMessage)
+        return () => socket.off('receive-message', handleReceiveMessage)
+    }, [socket, rideData?._id])
 
     useEffect(() => {
         let intervalId
@@ -105,8 +130,6 @@ const CaptainRiding = () => {
 
     const distanceKm = rideData?.distance ? (rideData.distance / 1000).toFixed(1) : null
     const durationMin = rideData?.duration ? Math.round(rideData.duration / 60) : null
-    const vehicleType = rideData?.vehicleType || rideData?.captain?.vehicle?.vehicleType
-
     useGSAP(() => {
         if (finishRidePanel) {
             gsap.to(finishRidePanelRef.current, { transform: 'translateY(0)', duration: 0.35, ease: 'power2.out' })
@@ -190,19 +213,25 @@ const CaptainRiding = () => {
             </button>
 
             <div className='h-screen w-screen absolute inset-0 z-0'>
-                <LiveTracking pickup={rideData?.pickup} destination={rideData?.destination} />
+                <LiveTracking
+                    pickup={rideData?.pickup}
+                    destination={rideData?.destination}
+                    statusClassName='absolute left-3 top-14 z-20 max-w-[calc(100%-1.5rem)] rounded-2xl border border-gray-200 bg-white/95 px-3 py-2 shadow-lg backdrop-blur-sm'
+                />
             </div>
 
-            <div className='absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pt-4 pointer-events-none'>
-                <img
-                    className='h-8 pointer-events-auto'
-                    src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png"
-                    alt="Uber"
-                    style={{ filter: 'brightness(0)' }}
-                />
+            <div className='absolute top-3 left-3 right-3 z-30 flex items-start justify-between gap-3 pointer-events-none'>
+                <div className='pointer-events-auto inline-flex items-center gap-3 rounded-2xl bg-white/90 px-3 py-2 shadow-lg border border-white/60 backdrop-blur-sm'>
+                    <div className='h-8 w-8 rounded-xl bg-black text-white flex items-center justify-center'>
+                        <i className="ri-steering-2-line text-lg"></i>
+                    </div>
+                    <span className='text-xs font-semibold text-gray-700 whitespace-nowrap'>
+                        Captain ride
+                    </span>
+                </div>
                 <Link
                     to='/captain-home'
-                    className='h-9 w-9 bg-white flex items-center justify-center rounded-full shadow-md border border-gray-100 pointer-events-auto'
+                    className='pointer-events-auto h-10 w-10 bg-white/95 flex items-center justify-center rounded-full shadow-lg border border-gray-100 backdrop-blur-sm'
                 >
                     <i className="ri-home-4-line text-base text-gray-700"></i>
                 </Link>

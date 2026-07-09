@@ -1,17 +1,17 @@
-import React, { useRef, useState } from 'react'
+import { useRef, useState, useEffect, useContext } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import CaptainDetails from '../components/CaptainDetails'
 import RidePopUp from '../components/RidePopUp'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import ConfirmRidePopUp from '../components/ConfirmRidePopUp'
-import { useEffect, useContext } from 'react'
 import { SocketContext } from '../context/SocketContext'
 import { CaptainDataContext } from '../context/CapatainContext'
 import axios from 'axios'
 import LiveTracking from '../components/LiveTracking'
 
 const CaptainHome = () => {
+    const LAST_LOCATION_KEY = 'uber:last-known-location'
 
     const [ ridePopupPanel, setRidePopupPanel ] = useState(false)
     const [ confirmRidePopupPanel, setConfirmRidePopupPanel ] = useState(false)
@@ -60,7 +60,7 @@ const CaptainHome = () => {
             }
         }
         if (captain?._id) recoverActiveRide()
-    }, [ captain ])
+    }, [ captain, navigate ])
 
     useEffect(() => {
         if (!captain?._id) return
@@ -72,16 +72,27 @@ const CaptainHome = () => {
 
         const locationOptions = {
             enableHighAccuracy: false,
-            timeout: 30000,
-            maximumAge: 0
+            timeout: 10000,
+            maximumAge: 300000
         }
 
         const emitCurrentLocation = (position) => {
+            const currentLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            }
+
+            try {
+                localStorage.setItem(LAST_LOCATION_KEY, JSON.stringify(currentLocation))
+            } catch {
+                // Ignore storage failures.
+            }
+
             socket.emit('update-location-captain', {
                 userId: captain._id,
                 location: {
-                    ltd: position.coords.latitude,
-                    lng: position.coords.longitude
+                    ltd: currentLocation.lat,
+                    lng: currentLocation.lng
                 }
             })
         }
@@ -154,7 +165,7 @@ const CaptainHome = () => {
 
     async function confirmRide() {
 
-        const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/confirm`, {
+        await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/confirm`, {
 
             rideId: ride._id,
             captainId: captain._id,
@@ -199,7 +210,12 @@ const CaptainHome = () => {
     return (
         <div className='h-screen'>
             <div className='fixed p-3 top-0 right-0 flex items-center gap-3 z-10'>
-                <img className='w-14 bg-white rounded-lg px-2 py-1 shadow-md' src="https://upload.wikimedia.org/wikipedia/commons/c/cc/Uber_logo_2018.png" alt="Uber" />
+                <div className='bg-white rounded-lg px-3 py-2 shadow-md flex items-center gap-2'>
+                    <div className='h-8 w-8 rounded-lg bg-black text-white flex items-center justify-center'>
+                        <i className="ri-steering-2-line text-lg"></i>
+                    </div>
+                    <span className='text-sm font-semibold text-gray-900'>Driver</span>
+                </div>
                 <Link to='/captain/logout' className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md'>
                     <i className="text-lg font-medium ri-logout-box-r-line"></i>
                 </Link>
