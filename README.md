@@ -1,7 +1,7 @@
 
 <div align="center">
 
-# 🚗 Uber Clone - Ride Hailing Web Application
+# 🚗 Ride Hailing Web Application
 ### Full-Stack Ride-Hailing Web Application
 
 ![MERN Stack](https://img.shields.io/badge/Stack-MERN-20232A?style=for-the-badge&logo=mongodb&logoColor=4EA94B)
