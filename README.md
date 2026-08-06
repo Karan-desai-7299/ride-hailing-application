@@ -62,7 +62,7 @@ External APIs     →  Google Maps Geocoding API · Google Maps Directions API
 ### 1 — Clone the Repository
 
 ```bash
-git clone https://github.com/Karan-desai-7299/uber-clone-mern.git
+git clone https://github.com/Karan-desai-7299/ride-hailing-application
 cd uber-clone-mern
 ```
 
