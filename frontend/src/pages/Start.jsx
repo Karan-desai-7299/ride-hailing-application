@@ -34,7 +34,7 @@ const Start = () => {
                             className='flex items-start gap-2 truncate text-blue-700 hover:text-blue-800'
                         >
                             <i className="ri-linkedin-box-fill mt-0.5 text-base shrink-0"></i>
-                            <span className='truncate'>www.linkedin.com/in/karansinh-desai-a249a0289</span>
+                            <span className='truncate'>https://www.linkedin.com/in/karansinh-desai/</span>
                         </a>
                     </div>
                 </div>
