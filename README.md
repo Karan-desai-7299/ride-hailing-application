@@ -159,6 +159,6 @@ Make sure the following APIs are enabled in your Google Cloud project:
 
 <div align="center">
 
-Made with ☕ by [Karan Desai](https://github.com/Karan-desai-7299)
+Made with ☕ by [Karansinh Desai](https://www.linkedin.com/in/karansinh-desai/)
 
 </div>
