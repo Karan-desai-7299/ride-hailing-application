@@ -6,7 +6,7 @@
 
 ![MERN Stack](https://img.shields.io/badge/Stack-MERN-20232A?style=for-the-badge&logo=mongodb&logoColor=4EA94B)
 ![Socket.io](https://img.shields.io/badge/Realtime-Socket.io-black?style=for-the-badge&logo=socket.io)
-![Google Maps](https://img.shields.io/badge/Maps-Google_Maps_API-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white)
+![Mapbox](https://img.shields.io/badge/Maps-Mapbox_GL-000000?style=for-the-badge&logo=mapbox&logoColor=white)
 ![Vite](https://img.shields.io/badge/Frontend-Vite_+_React-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 
 > An end-to-end ride-hailing platform — real-time tracking, live fare estimates, OTP-secured rides, and a full captain dashboard — built on the MERN stack.
