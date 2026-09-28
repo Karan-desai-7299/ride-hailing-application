@@ -37,6 +37,12 @@ app.use('/captains', captainRoutes);
 app.use('/maps', mapsRoutes);
 app.use('/rides', rideRoutes);
 
+// Support Vercel serverless /api prefix routing
+app.use('/api/users', userRoutes);
+app.use('/api/captains', captainRoutes);
+app.use('/api/maps', mapsRoutes);
+app.use('/api/rides', rideRoutes);
+
 app.use((err, req, res, next) => {
     console.error('Express error:', err.message);
     res.status(err.status || 500).json({
