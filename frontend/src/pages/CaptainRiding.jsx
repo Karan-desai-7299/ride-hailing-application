@@ -139,9 +139,9 @@ const CaptainRiding = () => {
     }, [ finishRidePanel ])
 
     return (
-        <div className='h-screen w-screen relative overflow-hidden bg-gray-50'>
+        <div className='h-full w-full relative overflow-hidden bg-gray-50'>
             {chatOpen && (
-                <div className='fixed inset-0 z-[900] flex flex-col justify-end'>
+                <div className='absolute inset-0 z-[900] flex flex-col justify-end'>
                     <div className='absolute inset-0 bg-black/30 backdrop-blur-[2px]' onClick={() => setChatOpen(false)} />
                     <div className='relative bg-white rounded-t-3xl shadow-2xl flex flex-col' style={{ maxHeight: '70vh' }}>
                         <div className='flex items-center justify-between px-5 py-4 border-b border-gray-100'>
@@ -202,7 +202,7 @@ const CaptainRiding = () => {
 
             <button
                 onClick={openChat}
-                className='fixed bottom-[42%] right-5 z-50 w-12 h-12 bg-black text-white rounded-full shadow-xl flex items-center justify-center hover:bg-gray-800 active:scale-95 transition-all'
+                className='absolute bottom-[42%] right-4 z-40 w-12 h-12 bg-black text-white rounded-full shadow-xl flex items-center justify-center hover:bg-gray-800 active:scale-95 transition-all'
             >
                 <i className="ri-message-3-fill text-lg"></i>
                 {unread > 0 && (
@@ -212,7 +212,7 @@ const CaptainRiding = () => {
                 )}
             </button>
 
-            <div className='h-screen w-screen absolute inset-0 z-0'>
+            <div className='h-full w-full absolute inset-0 z-0'>
                 <LiveTracking
                     pickup={rideData?.pickup}
                     destination={rideData?.destination}
@@ -314,7 +314,7 @@ const CaptainRiding = () => {
 
             <div
                 ref={finishRidePanelRef}
-                className='fixed w-full z-[500] bottom-0 translate-y-full bg-white rounded-t-3xl px-5 py-8 pt-12 shadow-2xl'
+                className='absolute w-full z-[500] bottom-0 translate-y-full bg-white rounded-t-3xl px-5 py-8 pt-12 shadow-2xl'
             >
                 <FinishRide ride={rideData} setFinishRidePanel={setFinishRidePanel} />
             </div>

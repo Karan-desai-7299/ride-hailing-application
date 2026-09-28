@@ -30,11 +30,11 @@ app.use(async (req, res, next) => {
 });
 
 app.get('/', (req, res) => {
-    res.send('Uber Backend Running ✅');
+    res.send('Ride Hailing Backend Running ✅');
 });
 
 app.get('/api', (req, res) => {
-    res.send('Uber Backend Running ✅');
+    res.send('Ride Hailing Backend Running ✅');
 });
 
 app.use('/users', userRoutes);

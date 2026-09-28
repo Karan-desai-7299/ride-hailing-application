@@ -4,7 +4,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const defaultCenter = [ 78.9629, 20.5937 ]; // [lng, lat] for India
-const STORAGE_KEY = 'uber:last-known-location';
+const STORAGE_KEY = 'ride_app:last-known-location';
 const APPROXIMATE_LOCATION_URL = 'https://ipapi.co/json/';
 
 const geolocationOptions = {

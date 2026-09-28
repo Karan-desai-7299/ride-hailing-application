@@ -18,39 +18,42 @@ import 'remixicon/fonts/remixicon.css'
 const App = () => {
 
   return (
-    <div>
-      <Routes>
-        <Route path='/' element={<Start />} />
-        <Route path='/login' element={<UserLogin />} />
-        <Route path='/riding' element={<Riding />} />
-        <Route path='/captain-riding' element={<CaptainRiding />} />
+    <div className='min-h-screen bg-slate-900 flex justify-center items-center font-sans antialiased'>
+      {/* Mobile-based screen: fills 100% on phones, centers cleanly on desktop */}
+      <div className='w-full max-w-md h-screen max-h-[100dvh] bg-white shadow-2xl relative overflow-hidden flex flex-col'>
+        <Routes>
+          <Route path='/' element={<Start />} />
+          <Route path='/login' element={<UserLogin />} />
+          <Route path='/riding' element={<Riding />} />
+          <Route path='/captain-riding' element={<CaptainRiding />} />
 
-        <Route path='/signup' element={<UserSignup />} />
-        <Route path='/captain-login' element={<Captainlogin />} />
-        <Route path='/captain-signup' element={<CaptainSignup />} />
-        <Route path='/home'
-          element={
-            <UserProtectWrapper>
-              <Home />
+          <Route path='/signup' element={<UserSignup />} />
+          <Route path='/captain-login' element={<Captainlogin />} />
+          <Route path='/captain-signup' element={<CaptainSignup />} />
+          <Route path='/home'
+            element={
+              <UserProtectWrapper>
+                <Home />
+              </UserProtectWrapper>
+            } />
+          <Route path='/user/logout'
+            element={<UserProtectWrapper>
+              <UserLogout />
             </UserProtectWrapper>
-          } />
-        <Route path='/user/logout'
-          element={<UserProtectWrapper>
-            <UserLogout />
-          </UserProtectWrapper>
-          } />
-        <Route path='/captain-home' element={
-          <CaptainProtectWrapper>
-            <CaptainHome />
-          </CaptainProtectWrapper>
+            } />
+          <Route path='/captain-home' element={
+            <CaptainProtectWrapper>
+              <CaptainHome />
+            </CaptainProtectWrapper>
 
-        } />
-        <Route path='/captain/logout' element={
-          <CaptainProtectWrapper>
-            <CaptainLogout />
-          </CaptainProtectWrapper>
-        } />
-      </Routes>
+          } />
+          <Route path='/captain/logout' element={
+            <CaptainProtectWrapper>
+              <CaptainLogout />
+            </CaptainProtectWrapper>
+          } />
+        </Routes>
+      </div>
     </div>
   )
 }

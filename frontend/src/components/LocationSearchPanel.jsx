@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 
-const RECENT_KEY = 'uber_recent_searches'
+const RECENT_KEY = 'ride_app_recent_searches'
 
 const LocationSearchPanel = ({ suggestions, setVehiclePanel, setPanelOpen, setPickup, setDestination, activeField }) => {
     const [ recent, setRecent ] = useState([])

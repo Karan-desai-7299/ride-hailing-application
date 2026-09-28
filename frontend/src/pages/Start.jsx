@@ -16,10 +16,10 @@ const Start = () => {
                 {/* Top logo */}
                 <div className='flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between'>
                     <div className='inline-flex items-center gap-3 text-white shrink-0'>
-                        <div className='h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20'>
-                            <span className='text-xl sm:text-2xl font-bold'>U</span>
+                        <div className='h-10 w-10 sm:h-11 sm:w-11 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-md'>
+                            <i className="ri-route-line text-xl sm:text-2xl"></i>
                         </div>
-                        <p className='text-2xl sm:text-3xl font-semibold leading-none'>Uber</p>
+                        <p className='text-xl sm:text-2xl font-bold leading-none'>Ride Hailing</p>
                     </div>
                     <div className='w-full max-w-[300px] sm:max-w-[250px] rounded-2xl bg-white/90 px-3 py-2 text-[11px] leading-4 text-gray-800 shadow-lg backdrop-blur-sm border border-white/60'>
                         <p className='font-semibold text-gray-900 mb-1'>Karansinh Desai</p>
@@ -41,7 +41,7 @@ const Start = () => {
 
                 {/* Bottom card */}
                 <div className='bg-white rounded-3xl p-5 sm:p-7 shadow-2xl'>
-                    <h2 className='text-2xl sm:text-3xl font-bold mb-1'>Move with Uber</h2>
+                    <h2 className='text-2xl sm:text-3xl font-bold mb-1'>Ride Hailing Application</h2>
                     <p className='text-gray-500 text-sm mb-6'>Request a ride, get picked up by a nearby driver, and be on your way.</p>
 
                     <Link
@@ -56,7 +56,7 @@ const Start = () => {
                             to='/captain-login'
                             className='flex-1 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 rounded-2xl text-sm transition-all'
                         >
-                            <i className="ri-steering-2-line mr-2 text-base"></i> Drive with Uber
+                            <i className="ri-steering-2-line mr-2 text-base"></i> Drive as Captain
                         </Link>
                         <Link
                             to='/signup'

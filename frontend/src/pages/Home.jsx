@@ -295,21 +295,20 @@ const Home = () => {
     }
 
     return (
-        <div className='h-screen relative overflow-hidden'>
-            <div className='absolute left-5 top-5 inline-flex items-center gap-2 rounded-2xl bg-white/95 px-3 py-2 shadow-md border border-gray-100'>
-                <div className='h-8 w-8 rounded-xl bg-black text-white flex items-center justify-center'>
+        <div className='h-full w-full relative overflow-hidden'>
+            <div className='absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-2xl bg-white/95 px-3 py-2 shadow-md border border-gray-100'>
+                <div className='h-8 w-8 rounded-xl bg-black text-white flex items-center justify-center shadow-sm'>
                     <i className="ri-route-line text-lg"></i>
                 </div>
-                <span className='text-sm font-semibold text-gray-900'>Ride</span>
+                <span className='text-sm font-bold text-gray-900'>Ride Hailing</span>
             </div>
-            <Link to='/user/logout' className='fixed right-5 top-5 h-10 w-10 bg-white flex items-center justify-center rounded-full z-20 shadow-md'>
+            <Link to='/user/logout' className='absolute right-4 top-4 h-10 w-10 bg-white flex items-center justify-center rounded-full z-20 shadow-md hover:bg-gray-50'>
                 <i className="text-lg font-medium ri-logout-box-r-line"></i>
             </Link>
-            <div className='h-screen w-screen'>
-                {/* image for temporary use  */}
+            <div className='h-full w-full absolute inset-0 z-0'>
                 <LiveTracking />
             </div>
-            <div className='flex flex-col justify-end h-screen absolute top-0 w-full z-20 pointer-events-none'>
+            <div className='flex flex-col justify-end h-full absolute inset-0 w-full z-20 pointer-events-none'>
                 <div className='bg-white relative pointer-events-auto'>
                     <h5 ref={panelCloseRef} onClick={() => {
                         setPanelOpen(false)
@@ -374,12 +373,12 @@ const Home = () => {
                     </div>
                 </div>
             </div>
-            <div ref={vehiclePanelRef} className='fixed w-full z-30 bottom-0 translate-y-full bg-white px-3 py-10 pt-12'>
+            <div ref={vehiclePanelRef} className='absolute w-full z-30 bottom-0 translate-y-full bg-white px-3 py-10 pt-12 rounded-t-3xl shadow-2xl'>
                 <VehiclePanel
                     selectVehicle={setVehicleType}
                     fare={fare} setConfirmRidePanel={setConfirmRidePanel} setVehiclePanel={setVehiclePanel} />
             </div>
-            <div ref={confirmRidePanelRef} className='fixed w-full z-30 bottom-0 translate-y-full bg-white px-3 py-6 pt-12'>
+            <div ref={confirmRidePanelRef} className='absolute w-full z-30 bottom-0 translate-y-full bg-white px-3 py-6 pt-12 rounded-t-3xl shadow-2xl'>
                 <ConfirmRide
                     createRide={createRide}
                     pickup={pickup}
@@ -389,7 +388,7 @@ const Home = () => {
 
                     setConfirmRidePanel={setConfirmRidePanel} setVehicleFound={setVehicleFound} />
             </div>
-            <div ref={vehicleFoundRef} className='fixed w-full z-30 bottom-0 translate-y-full bg-white px-3 py-6 pt-12'>
+            <div ref={vehicleFoundRef} className='absolute w-full z-30 bottom-0 translate-y-full bg-white px-3 py-6 pt-12 rounded-t-3xl shadow-2xl'>
                 <LookingForDriver
                     createRide={createRide}
                     pickup={pickup}
@@ -399,7 +398,7 @@ const Home = () => {
                     rideId={rideId}
                     setVehicleFound={setVehicleFound} />
             </div>
-            <div ref={waitingForDriverRef} className='fixed w-full  z-30 bottom-0  bg-white px-3 py-6 pt-12'>
+            <div ref={waitingForDriverRef} className='absolute w-full z-30 bottom-0 bg-white px-3 py-6 pt-12 rounded-t-3xl shadow-2xl'>
                 <WaitingForDriver
                     ride={ride}
                     setVehicleFound={setVehicleFound}
@@ -409,7 +408,7 @@ const Home = () => {
 
             {/* Ride History Panel */}
             {historyOpen && (
-                <div className='fixed w-full z-40 bottom-0 max-h-[70%] overflow-y-auto bg-white px-6 py-8 pt-10 rounded-t-3xl shadow-2xl transition-transform duration-300 border-t border-gray-200'>
+                <div className='absolute w-full z-40 bottom-0 max-h-[70%] overflow-y-auto bg-white px-6 py-8 pt-10 rounded-t-3xl shadow-2xl transition-transform duration-300 border-t border-gray-200'>
                     <div className='flex items-center justify-between mb-6'>
                         <h3 className='text-2xl font-bold text-gray-900'>Your Rides</h3>
                         <button onClick={() => setHistoryOpen(false)} className='text-gray-500 hover:text-black text-xl font-bold p-1'><i className="ri-close-line"></i></button>

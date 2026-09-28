@@ -11,7 +11,7 @@ import axios from 'axios'
 import LiveTracking from '../components/LiveTracking'
 
 const CaptainHome = () => {
-    const LAST_LOCATION_KEY = 'uber:last-known-location'
+    const LAST_LOCATION_KEY = 'ride_app:last-known-location'
 
     const [ ridePopupPanel, setRidePopupPanel ] = useState(false)
     const [ confirmRidePopupPanel, setConfirmRidePopupPanel ] = useState(false)
@@ -208,30 +208,30 @@ const CaptainHome = () => {
     }, [ confirmRidePopupPanel ])
 
     return (
-        <div className='h-screen'>
-            <div className='fixed p-3 top-0 right-0 flex items-center gap-3 z-10'>
-                <div className='bg-white rounded-lg px-3 py-2 shadow-md flex items-center gap-2'>
-                    <div className='h-8 w-8 rounded-lg bg-black text-white flex items-center justify-center'>
+        <div className='h-full w-full relative overflow-hidden flex flex-col justify-between'>
+            <div className='absolute p-3 top-0 right-0 flex items-center gap-3 z-10'>
+                <div className='bg-white rounded-xl px-3 py-2 shadow-md flex items-center gap-2 border border-gray-100'>
+                    <div className='h-8 w-8 rounded-lg bg-black text-white flex items-center justify-center shadow-sm'>
                         <i className="ri-steering-2-line text-lg"></i>
                     </div>
-                    <span className='text-sm font-semibold text-gray-900'>Driver</span>
+                    <span className='text-sm font-bold text-gray-900'>Ride Hailing Captain</span>
                 </div>
-                <Link to='/captain/logout' className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md'>
+                <Link to='/captain/logout' className='h-10 w-10 bg-white flex items-center justify-center rounded-full shadow-md hover:bg-gray-50'>
                     <i className="text-lg font-medium ri-logout-box-r-line"></i>
                 </Link>
             </div>
             <div className='h-3/5 w-full relative z-0'>
                 <LiveTracking />
             </div>
-            <div className='h-2/5 p-6 flex flex-col justify-between'>
+            <div className='h-2/5 p-6 flex flex-col justify-between bg-white'>
                 <CaptainDetails />
                 <button
                     onClick={() => setHistoryOpen(true)}
-                    className='bg-black text-white px-4 py-3 rounded-lg w-full font-semibold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors shadow-md mt-4'>
+                    className='bg-black text-white px-4 py-3 rounded-xl w-full font-semibold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors shadow-md mt-4'>
                     <i className="ri-history-line"></i> View Ride History
                 </button>
             </div>
-            <div ref={ridePopupPanelRef} className='fixed w-full z-10 bottom-0 translate-y-full bg-white px-3 py-10 pt-12'>
+            <div ref={ridePopupPanelRef} className='absolute w-full z-10 bottom-0 translate-y-full bg-white px-3 py-10 pt-12 rounded-t-3xl shadow-2xl'>
                 <RidePopUp
                     ride={ride}
                     setRidePopupPanel={setRidePopupPanel}
@@ -239,7 +239,7 @@ const CaptainHome = () => {
                     confirmRide={confirmRide}
                 />
             </div>
-            <div ref={confirmRidePopupPanelRef} className='fixed w-full h-screen z-20 bottom-0 translate-y-full bg-white px-3 py-10 pt-12'>
+            <div ref={confirmRidePopupPanelRef} className='absolute w-full h-full z-20 bottom-0 translate-y-full bg-white px-3 py-10 pt-12 rounded-t-3xl shadow-2xl'>
                 <ConfirmRidePopUp
                     ride={ride}
                     setConfirmRidePopupPanel={setConfirmRidePopupPanel} setRidePopupPanel={setRidePopupPanel} />
@@ -247,7 +247,7 @@ const CaptainHome = () => {
 
             {/* Ride History Panel */}
             {historyOpen && (
-                <div className='fixed w-full z-40 bottom-0 max-h-[70%] overflow-y-auto bg-white px-6 py-8 pt-10 rounded-t-3xl shadow-2xl transition-transform duration-300 border-t border-gray-200'>
+                <div className='absolute w-full z-40 bottom-0 max-h-[70%] overflow-y-auto bg-white px-6 py-8 pt-10 rounded-t-3xl shadow-2xl transition-transform duration-300 border-t border-gray-200'>
                     <div className='flex items-center justify-between mb-6'>
                         <h3 className='text-2xl font-bold text-gray-900'>Completed Rides</h3>
                         <button onClick={() => setHistoryOpen(false)} className='text-gray-500 hover:text-black text-xl font-bold p-1'><i className="ri-close-line"></i></button>

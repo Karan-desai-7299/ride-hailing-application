@@ -37,10 +37,10 @@ const Captainlogin = () => {
             <div>
                 <div className='flex items-center justify-between mb-6'>
                     <div className='inline-flex items-center gap-2 text-gray-900'>
-                        <div className='h-10 w-10 rounded-2xl bg-black text-white flex items-center justify-center'>
+                        <div className='h-10 w-10 rounded-2xl bg-black text-white flex items-center justify-center shadow-sm'>
                             <i className="ri-steering-2-line text-xl"></i>
                         </div>
-                        <span className='text-lg font-semibold'>Driver</span>
+                        <span className='text-base font-bold'>Ride Hailing Captain</span>
                     </div>
                     <Link to='/' className='text-sm font-medium flex items-center gap-1 text-gray-500 hover:text-black'>
                         <i className="ri-arrow-left-line"></i> Back

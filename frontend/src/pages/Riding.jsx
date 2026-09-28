@@ -177,9 +177,9 @@ const Riding = () => {
     }
 
     return (
-        <div className='h-screen relative overflow-hidden'>
+        <div className='h-full w-full relative overflow-hidden'>
             {showRating && (
-                <div className='fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4'>
+                <div className='absolute inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4'>
                     <div className='bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl'>
                         <div className='text-center mb-2'>
                             <div className='w-16 h-16 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-3'>
@@ -237,7 +237,7 @@ const Riding = () => {
             )}
 
             {chatOpen && (
-                <div className='fixed inset-0 z-[900] flex flex-col justify-end'>
+                <div className='absolute inset-0 z-[900] flex flex-col justify-end'>
                     <div className='absolute inset-0 bg-black/30 backdrop-blur-[2px]' onClick={() => setChatOpen(false)} />
                     <div className='relative bg-white rounded-t-3xl shadow-2xl flex flex-col' style={{ maxHeight: '70vh' }}>
                         <div className='flex items-center justify-between px-5 py-4 border-b border-gray-100'>
@@ -298,7 +298,7 @@ const Riding = () => {
 
             <button
                 onClick={openChat}
-                className='fixed bottom-[52%] right-5 z-50 w-12 h-12 bg-black text-white rounded-full shadow-xl flex items-center justify-center hover:bg-gray-800 active:scale-95 transition-all'
+                className='absolute bottom-[52%] right-4 z-40 w-12 h-12 bg-black text-white rounded-full shadow-xl flex items-center justify-center hover:bg-gray-800 active:scale-95 transition-all'
             >
                 <i className="ri-message-3-fill text-lg"></i>
                 {unread > 0 && (
@@ -308,7 +308,7 @@ const Riding = () => {
                 )}
             </button>
 
-            <Link to='/home' className='fixed right-2 top-2 h-10 w-10 bg-white flex items-center justify-center rounded-full z-10 shadow-md'>
+            <Link to='/home' className='absolute right-3 top-3 h-10 w-10 bg-white flex items-center justify-center rounded-full z-20 shadow-md hover:bg-gray-50'>
                 <i className="text-lg font-medium ri-home-5-line"></i>
             </Link>
             <div className='h-1/2'>
