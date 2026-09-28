@@ -15,6 +15,7 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
+app.options('*', cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -29,6 +30,10 @@ app.use(async (req, res, next) => {
 });
 
 app.get('/', (req, res) => {
+    res.send('Uber Backend Running ✅');
+});
+
+app.get('/api', (req, res) => {
     res.send('Uber Backend Running ✅');
 });
 
