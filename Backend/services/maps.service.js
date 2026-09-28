@@ -1,77 +1,93 @@
 const axios = require('axios');
 const captainModel = require('../models/captain.model');
 
+const getMapboxToken = () => {
+    return process.env.MAPBOX_TOKEN || process.env.GOOGLE_MAPS_API || '';
+};
+
 module.exports.getAddressCoordinate = async (address) => {
-    const apiKey = process.env.GOOGLE_MAPS_API;
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+    if (!address) {
+        throw new Error('Address is required');
+    }
+
+    const token = getMapboxToken();
 
     try {
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${token}`;
         const response = await axios.get(url);
-        if (response.data.status === 'OK') {
-            const location = response.data.results[ 0 ].geometry.location;
+
+        if (response.data && response.data.features && response.data.features.length > 0) {
+            const [ lng, lat ] = response.data.features[0].center;
             return {
-                ltd: location.lat,
-                lng: location.lng
+                ltd: lat,
+                lng: lng
             };
         } else {
             throw new Error('Unable to fetch coordinates');
         }
     } catch (error) {
-        console.error(error);
+        console.error('Mapbox Geocode Error:', error?.response?.data || error.message);
         throw error;
     }
-}
+};
 
 module.exports.getDistanceTime = async (origin, destination) => {
     if (!origin || !destination) {
         throw new Error('Origin and destination are required');
     }
 
-    const apiKey = process.env.GOOGLE_MAPS_API;
-
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(origin)}&destinations=${encodeURIComponent(destination)}&key=${apiKey}`;
+    const token = getMapboxToken();
 
     try {
+        // Geocode origin and destination first
+        const originCoords = await module.exports.getAddressCoordinate(origin);
+        const destCoords = await module.exports.getAddressCoordinate(destination);
 
-
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${originCoords.lng},${originCoords.ltd};${destCoords.lng},${destCoords.ltd}?overview=full&geometries=geojson&access_token=${token}`;
         const response = await axios.get(url);
-        if (response.data.status === 'OK') {
 
-            if (response.data.rows[ 0 ].elements[ 0 ].status === 'ZERO_RESULTS') {
-                throw new Error('No routes found');
-            }
-
-            return response.data.rows[ 0 ].elements[ 0 ];
+        if (response.data && response.data.routes && response.data.routes.length > 0) {
+            const route = response.data.routes[0];
+            return {
+                distance: {
+                    value: Math.round(route.distance), // in meters
+                    text: `${(route.distance / 1000).toFixed(1)} km`
+                },
+                duration: {
+                    value: Math.round(route.duration), // in seconds
+                    text: `${Math.round(route.duration / 60)} mins`
+                }
+            };
         } else {
-            throw new Error('Unable to fetch distance and time');
+            throw new Error('No routes found');
         }
-
     } catch (err) {
-        console.error(err);
+        console.error('Mapbox DistanceTime Error:', err?.response?.data || err.message);
         throw err;
     }
-}
+};
 
 module.exports.getAutoCompleteSuggestions = async (input) => {
     if (!input) {
-        throw new Error('query is required');
+        throw new Error('Query is required');
     }
 
-    const apiKey = process.env.GOOGLE_MAPS_API;
-    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${apiKey}`;
+    const token = getMapboxToken();
 
     try {
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(input)}.json?autocomplete=true&access_token=${token}`;
         const response = await axios.get(url);
-        if (response.data.status === 'OK') {
-            return response.data.predictions.map(prediction => prediction.description).filter(value => value);
+
+        if (response.data && response.data.features) {
+            return response.data.features.map(feature => feature.place_name).filter(Boolean);
         } else {
-            throw new Error('Unable to fetch suggestions');
+            return [];
         }
     } catch (err) {
-        console.error(err);
+        console.error('Mapbox Autocomplete Error:', err?.response?.data || err.message);
         throw err;
     }
-}
+};
 
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // Radius of the earth in km
@@ -108,4 +124,4 @@ module.exports.getCaptainsInTheRadius = async (ltd, lng, radius, vehicleType) =>
         const distance = getDistance(ltd, lng, captain.location.ltd, captain.location.lng);
         return distance <= radius;
     });
-}
+};
